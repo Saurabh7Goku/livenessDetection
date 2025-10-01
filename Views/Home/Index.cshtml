@@ -1,0 +1,508 @@
+﻿@{
+    ViewData["Title"] = "Liveness Detection - Exam Verification";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        #webcam {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 3px solid transparent;
+            pointer-events: none;
+            transition: border-color 0.3s;
+        }
+
+        .overlay.detecting {
+            border-color: #fbbf24;
+        }
+
+        .overlay.success {
+            border-color: #10b981;
+        }
+
+        .overlay.error {
+            border-color: #ef4444;
+        }
+
+        .status-panel {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .status-icon.pending {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .status-icon.checking {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-icon.success {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .status-icon.error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .message-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #1e40af;
+        }
+
+        .message-box.success {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+            color: #065f46;
+        }
+
+        .message-box.error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+            color: #991b1b;
+        }
+
+        .message-box.warning {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .instructions {
+            background: #fef3c7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: #92400e;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instructions li {
+            color: #78350f;
+            margin-bottom: 8px;
+            padding-left: 24px;
+            position: relative;
+            font-size: 14px;
+        }
+
+        .instructions li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #d97706;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Liveness Detection System</h1>
+        <p class="subtitle">Exam Form Verification - Identity Check</p>
+
+        <div class="instructions">
+            <h3>Instructions for Verification:</h3>
+            <ul>
+                <li>Position your face clearly in front of the camera</li>
+                <li>Ensure good lighting - avoid shadows on your face</li>
+                <li>Remove any face coverings (masks, sunglasses, etc.)</li>
+                <li>Only one person should be in the frame</li>
+                <li>Keep the camera steady and avoid motion blur</li>
+            </ul>
+        </div>
+
+        <div class="video-container">
+            <video id="webcam" autoplay playsinline></video>
+            <div id="overlay" class="overlay"></div>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-item">
+                <div id="faceStatus" class="status-icon pending">?</div>
+                <span id="faceText">Face Detection: Waiting...</span>
+            </div>
+            <div class="status-item">
+                <div id="countStatus" class="status-icon pending">?</div>
+                <span id="countText">Person Count: Checking...</span>
+            </div>
+            <div class="status-item">
+                <div id="blurStatus" class="status-icon pending">?</div>
+                <span id="blurText">Blur Detection: Analyzing...</span>
+            </div>
+            <div class="status-item">
+                <div id="livenessStatus" class="status-icon pending">?</div>
+                <span id="livenessText">Liveness Check: Pending...</span>
+            </div>
+        </div>
+
+        <div id="messageBox" class="message-box hidden"></div>
+
+        <button id="startBtn" class="btn btn-primary">
+            Start Verification
+        </button>
+
+        <button id="captureBtn" class="btn btn-success hidden" disabled>
+            <span class="spinner hidden" id="spinner"></span>
+            Capture & Verify
+        </button>
+    </div>
+
+    <script>
+        let stream = null;
+        let isProcessing = false;
+        let verificationInterval = null;
+
+        const webcam = document.getElementById('webcam');
+        const startBtn = document.getElementById('startBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const overlay = document.getElementById('overlay');
+        const messageBox = document.getElementById('messageBox');
+        const spinner = document.getElementById('spinner');
+
+        const statusElements = {
+            face: { icon: document.getElementById('faceStatus'), text: document.getElementById('faceText') },
+            count: { icon: document.getElementById('countStatus'), text: document.getElementById('countText') },
+            blur: { icon: document.getElementById('blurStatus'), text: document.getElementById('blurText') },
+            liveness: { icon: document.getElementById('livenessStatus'), text: document.getElementById('livenessText') }
+        };
+
+        startBtn.addEventListener('click', startWebcam);
+        captureBtn.addEventListener('click', captureAndVerify);
+
+        async function startWebcam() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    } 
+                });
+                
+                webcam.srcObject = stream;
+                startBtn.classList.add('hidden');
+                captureBtn.classList.remove('hidden');
+                captureBtn.disabled = false;
+                
+                showMessage('Camera started successfully! Position your face and click Capture & Verify.', 'success');
+                
+                // Start continuous verification
+                startContinuousVerification();
+            } catch (error) {
+                showMessage('Unable to access camera. Please grant camera permissions.', 'error');
+                console.error('Camera error:', error);
+            }
+        }
+
+        function startContinuousVerification() {
+            // Check every 2 seconds for real-time feedback
+            verificationInterval = setInterval(() => {
+                if (!isProcessing) {
+                    performQuickCheck();
+                }
+            }, 2000);
+        }
+
+        async function performQuickCheck() {
+            const canvas = document.createElement('canvas');
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(webcam, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            try {
+                const response = await fetch('/Home/ProcessFrame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageData })
+                });
+                
+                const result = await response.json();
+                updateStatusUI(result, false);
+            } catch (error) {
+                console.error('Quick check error:', error);
+            }
+        }
+
+        async function captureAndVerify() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            captureBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            overlay.className = 'overlay detecting';
+            
+            showMessage('Processing image... Please wait.', 'warning');
+            
+            // Capture image from video
+            const canvas = document.createElement('canvas');
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(webcam, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.95);
+            
+            try {
+                const response = await fetch('/Home/ProcessFrame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageData })
+                });
+                
+                const result = await response.json();
+                updateStatusUI(result, true);
+                
+                if (result.success) {
+                    overlay.className = 'overlay success';
+                    showMessage(`${result.message} Image saved successfully!`, 'success');
+                    
+                    // Stop camera after successful capture
+                    setTimeout(() => {
+                        stopWebcam();
+                        captureBtn.textContent = 'Verification Complete ✓';
+                        captureBtn.disabled = true;
+                    }, 2000);
+                } else {
+                    overlay.className = 'overlay error';
+                    showMessage(result.message, 'error');
+                    setTimeout(() => {
+                        overlay.className = 'overlay';
+                    }, 3000);
+                }
+            } catch (error) {
+                overlay.className = 'overlay error';
+                showMessage('Error processing image. Please try again.', 'error');
+                console.error('Processing error:', error);
+            } finally {
+                isProcessing = false;
+                captureBtn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function updateStatusUI(result, isFinalCheck) {
+            // Face detection
+            if (result.faceCount === 1) {
+                updateStatus('face', 'success', '✓', 'Face Detected: 1 person');
+            } else if (result.faceCount === 0) {
+                updateStatus('face', 'error', '✗', 'Face Detection: No face found');
+            } else {
+                updateStatus('face', 'error', '✗', `Face Detection: ${result.faceCount} faces found`);
+            }
+            
+            // Person count
+            if (result.faceCount === 1) {
+                updateStatus('count', 'success', '✓', 'Person Count: Valid (1 person)');
+            } else if (result.faceCount > 1) {
+                updateStatus('count', 'error', '✗', `Person Count: Invalid (${result.faceCount} people)`);
+            } else {
+                updateStatus('count', 'checking', '...', 'Person Count: Checking...');
+            }
+            
+            // Blur detection
+            if (!result.isBlurred && result.faceCount > 0) {
+                updateStatus('blur', 'success', '✓', `Blur Check: Clear (score: ${result.blurScore.toFixed(2)})`);
+            } else if (result.isBlurred) {
+                updateStatus('blur', 'error', '✗', `Blur Check: Too blurry (score: ${result.blurScore.toFixed(2)})`);
+            } else {
+                updateStatus('blur', 'checking', '...', 'Blur Check: Analyzing...');
+            }
+            
+            // Liveness check
+            if (result.hasEyes && result.faceCount === 1) {
+                updateStatus('liveness', 'success', '✓', 'Liveness: Real person detected');
+            } else if (result.faceCount === 1 && !result.hasEyes) {
+                updateStatus('liveness', 'error', '✗', 'Liveness: Eyes not clearly visible');
+            } else {
+                updateStatus('liveness', 'checking', '...', 'Liveness: Pending...');
+            }
+        }
+
+        function updateStatus(type, status, icon, text) {
+            const el = statusElements[type];
+            el.icon.className = `status-icon ${status}`;
+            el.icon.textContent = icon;
+            el.text.textContent = text;
+        }
+
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.classList.remove('hidden');
+        }
+
+        function stopWebcam() {
+            if (verificationInterval) {
+                clearInterval(verificationInterval);
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        window.addEventListener('beforeunload', stopWebcam);
+    </script>
+</body>
+</html>
