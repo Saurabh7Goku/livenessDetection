@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LivenessDetection")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+baf15f2bf736d2c63bdbf2893f5e64e347225011")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8474517852a90b271629e61dc0580a5da9629397")]
 [assembly: System.Reflection.AssemblyProductAttribute("LivenessDetection")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LivenessDetection")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

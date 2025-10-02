@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -132,8 +133,15 @@
         }
 
         @@keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .controls {
@@ -313,6 +321,7 @@
                 opacity: 0;
                 transform: translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -362,7 +371,9 @@
         }
 
         @@keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .hidden {
@@ -381,6 +392,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -393,13 +405,16 @@
         <div class="main-grid">
             <div class="video-section">
                 <div class="video-wrapper">
-                    <video id="webcam" autoplay playsinline></video>
+                    <video id="webcam" autoplay playsinline width="640" height="480"></video>
                     <div id="overlay" class="video-overlay"></div>
                     <div class="camera-badge hidden" id="cameraBadge">
                         <div class="status-dot"></div>
                         <span>Live</span>
                     </div>
                 </div>
+                <select id="deviceSelect"
+                    style="width: 100%; padding: 10px; margin-bottom: 12px; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; font-size: 14px;">
+                </select>
 
                 <div class="controls">
                     <button id="startBtn" class="btn btn-primary">
@@ -470,8 +485,13 @@
 
     <script>
         let stream = null;
+        let currentDeviceId = null;
         let isProcessing = false;
         let verificationInterval = null;
+        let blinkCount = 0;
+        let previousEyeState = null;
+        let allChecksPassedOnce = false;
+        let autoCapturePending = false;
 
         const webcam = document.getElementById('webcam');
         const startBtn = document.getElementById('startBtn');
@@ -492,57 +512,134 @@
         startBtn.addEventListener('click', startWebcam);
         captureBtn.addEventListener('click', captureAndVerify);
 
-        async function startWebcam() {
+        async function listCameras() {
             try {
-                // First check if mediaDevices is supported
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === "videoinput");
+
+                deviceSelect.innerHTML = videoDevices
+                    .map((d, i) => `<option value="${d.deviceId}">${d.label || "Camera " + (i + 1)}</option>`)
+                    .join("");
+            } catch (err) {
+                console.error("Error listing cameras:", err);
+            }
+        }
+
+
+        async function startWebcam(deviceId = null) {
+            try {
+                // Check if MediaDevices API is supported
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     throw new Error('Camera API not supported in this browser');
                 }
 
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
+                // Stop existing stream if any
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+
+                const constraints = {
+                    video: {
+                        deviceId: deviceId ? { exact: deviceId } : undefined,
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
-                        facingMode: 'user'
+                        facingMode: deviceId ? undefined : 'user'
                     },
                     audio: false
-                });
-                
+                };
+
+                console.log('Requesting camera with constraints:', constraints); // Debug log
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                console.log('Stream obtained:', stream); // Debug log
+
                 webcam.srcObject = stream;
-                
+
                 // Wait for video to be ready
-                await new Promise((resolve) => {
+                await new Promise((resolve, reject) => {
                     webcam.onloadedmetadata = () => {
-                        webcam.play();
-                        resolve();
+                        webcam.play()
+                            .then(resolve)
+                            .catch(reject);
                     };
+                    webcam.onerror = reject;
                 });
-                
+
+                currentDeviceId = deviceId;
+
+                // Populate camera list after getting permission
+                await listCameras();
+
                 startBtn.classList.add('hidden');
                 captureBtn.classList.remove('hidden');
                 captureBtn.disabled = false;
                 cameraBadge.classList.remove('hidden');
-                
+
                 showAlert('Camera started successfully! Position your face and click Capture & Verify.', 'success');
-                
                 startContinuousVerification();
+
             } catch (error) {
+                console.error('Detailed camera error:', error); // Debug log
+
                 let errorMessage = 'Unable to access camera. ';
-                
-                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                    errorMessage += 'Please grant camera permissions and refresh the page.';
-                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-                    errorMessage += 'No camera device found.';
-                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-                    errorMessage += 'Camera is already in use by another application.';
+
+                if (error.name) {
+                    switch (error.name) {
+                        case 'NotAllowedError':
+                        case 'PermissionDeniedError':
+                            errorMessage += 'Please grant camera permissions and refresh the page.';
+                            break;
+                        case 'NotFoundError':
+                        case 'DevicesNotFoundError':
+                            errorMessage += 'No camera device found.';
+                            break;
+                        case 'NotReadableError':
+                        case 'TrackStartError':
+                            errorMessage += 'Camera is already in use by another application.';
+                            break;
+                        case 'OverconstrainedError':
+                            errorMessage += 'Could not find camera matching the requirements.';
+                            // Try again with simpler constraints
+                            if (deviceId) {
+                                console.log('Retrying without device constraint...');
+                                return startWebcam(null);
+                            }
+                            break;
+                        default:
+                            errorMessage += error.message || 'Unknown error occurred.';
+                            break;
+                    }
                 } else {
                     errorMessage += error.message || 'Unknown error occurred.';
                 }
-                
+
                 showAlert(errorMessage, 'error');
-                console.error('Camera error:', error);
             }
         }
+
+        async function listCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === "videoinput");
+
+                deviceSelect.innerHTML = videoDevices
+                    .map((d, i) => `<option value="${d.deviceId}" ${d.deviceId === currentDeviceId ? 'selected' : ''}>${d.label || "Camera " + (i + 1)}</option>`)
+                    .join("");
+            } catch (err) {
+                console.error("Error listing cameras:", err);
+            }
+        }
+
+        // Update the event listener:
+        deviceSelect.addEventListener("change", () => {
+            if (stream) {
+                startWebcam(deviceSelect.value);
+            }
+        });
+
+
 
         function startContinuousVerification() {
             verificationInterval = setInterval(() => {
@@ -553,8 +650,7 @@
         }
 
         async function performQuickCheck() {
-            // Make sure video is playing and has valid dimensions
-            if (webcam.readyState !== webcam.HAVE_ENOUGH_DATA || 
+            if (webcam.readyState !== webcam.HAVE_ENOUGH_DATA ||
                 webcam.videoWidth === 0 || webcam.videoHeight === 0) {
                 return;
             }
@@ -564,55 +660,106 @@
             canvas.height = webcam.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(webcam, 0, 0);
-            
+
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
-            
+
             try {
                 const response = await fetch('/Home/ProcessFrame', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ imageData, saveImage: false })
                 });
-                
+
                 const result = await response.json();
                 updateStatusUI(result, false);
+
+                // Blink detection logic
+                detectBlink(result);
+
             } catch (error) {
                 console.error('Quick check error:', error);
             }
         }
 
+        function detectBlink(result) {
+            // Only track blinks if all basic checks pass
+            if (result.faceCount === 1 && !result.isBlurred && result.hasEyes) {
+
+                if (!allChecksPassedOnce) {
+                    allChecksPassedOnce = true;
+                    showAlert('All checks passed! Please blink twice to capture.', 'info');
+                }
+
+                const currentEyeState = result.eyesOpen;
+
+                // Detect blink: transition from open -> closed -> open
+                if (previousEyeState === true && currentEyeState === false) {
+                    // Eyes just closed
+                    console.log('Eyes closed');
+                } else if (previousEyeState === false && currentEyeState === true) {
+                    // Eyes just opened (blink completed)
+                    blinkCount++;
+                    console.log(`Blink detected! Count: ${blinkCount}`);
+
+                    updateStatus('liveness', 'checking', '👁', `Blink ${blinkCount}/2`);
+
+                    if (blinkCount === 1) {
+                        showAlert('Great! Blink detected (1/2). Blink once more.', 'info');
+                    } else if (blinkCount >= 2 && !autoCapturePending) {
+                        autoCapturePending = true;
+                        updateStatus('liveness', 'success', '✓', 'Blinks verified!');
+                        showAlert('Perfect! Auto-capturing in 1 second...', 'success');
+
+                        setTimeout(() => {
+                            captureAndVerify();
+                        }, 1000);
+                    }
+                }
+
+                previousEyeState = currentEyeState;
+            } else {
+                // Reset if checks fail
+                if (allChecksPassedOnce) {
+                    allChecksPassedOnce = false;
+                    blinkCount = 0;
+                    previousEyeState = null;
+                    autoCapturePending = false;
+                }
+            }
+        }
+
         async function captureAndVerify() {
             if (isProcessing) return;
-            
+
             isProcessing = true;
             captureBtn.disabled = true;
             spinner.classList.remove('hidden');
             overlay.className = 'video-overlay detecting';
-            
+
             showAlert('Processing image... Please wait.', 'warning');
-            
+
             const canvas = document.createElement('canvas');
             canvas.width = webcam.videoWidth;
             canvas.height = webcam.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(webcam, 0, 0);
-            
+
             const imageData = canvas.toDataURL('image/jpeg', 0.95);
-            
+
             try {
                 const response = await fetch('/Home/ProcessFrame', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ imageData, saveImage: true })
                 });
-                
+
                 const result = await response.json();
                 updateStatusUI(result, true);
-                
+
                 if (result.success) {
                     overlay.className = 'video-overlay success';
                     showAlert(`${result.message} Image saved successfully!`, 'success');
-                    
+
                     setTimeout(() => {
                         stopWebcam();
                         captureText.textContent = 'Verification Complete ✓';
@@ -644,7 +791,7 @@
             } else {
                 updateStatus('face', 'error', '✗', `${result.faceCount} faces found`);
             }
-            
+
             if (result.faceCount === 1) {
                 updateStatus('count', 'success', '✓', 'Valid (1 person)');
             } else if (result.faceCount > 1) {
@@ -652,7 +799,7 @@
             } else {
                 updateStatus('count', 'checking', '⋯', 'Checking...');
             }
-            
+
             if (!result.isBlurred && result.faceCount > 0) {
                 updateStatus('blur', 'success', '✓', `Clear (${result.blurScore.toFixed(2)})`);
             } else if (result.isBlurred) {
@@ -660,13 +807,28 @@
             } else {
                 updateStatus('blur', 'checking', '⋯', 'Analyzing...');
             }
-            
-            if (result.hasEyes && result.faceCount === 1) {
-                updateStatus('liveness', 'success', '✓', 'Real person detected');
-            } else if (result.faceCount === 1 && !result.hasEyes) {
-                updateStatus('liveness', 'error', '✗', 'Eyes not visible');
+
+            // Update liveness status with blink count
+            if (!isFinalCheck) {
+                if (result.hasEyes && result.faceCount === 1 && !result.isBlurred) {
+                    if (blinkCount === 0) {
+                        updateStatus('liveness', 'checking', '👁', 'Please blink twice');
+                    } else if (blinkCount === 1) {
+                        updateStatus('liveness', 'checking', '👁', 'Blink 1/2 - One more!');
+                    } else {
+                        updateStatus('liveness', 'success', '✓', 'Blinks verified!');
+                    }
+                } else if (result.faceCount === 1 && !result.hasEyes) {
+                    updateStatus('liveness', 'error', '✗', 'Eyes not visible');
+                } else {
+                    updateStatus('liveness', 'checking', '⋯', 'Pending...');
+                }
             } else {
-                updateStatus('liveness', 'checking', '⋯', 'Pending...');
+                if (result.hasEyes && result.faceCount === 1) {
+                    updateStatus('liveness', 'success', '✓', 'Real person detected');
+                } else {
+                    updateStatus('liveness', 'error', '✗', 'Eyes not visible');
+                }
             }
         }
 
@@ -684,13 +846,13 @@
                 error: '✗',
                 warning: '⚠'
             };
-            
+
             alertBox.innerHTML = `
                 <span class="alert-icon">${icons[type]}</span>
                 <span>${message}</span>
             `;
             alertBox.className = `alert ${type} show`;
-            
+
             setTimeout(() => {
                 alertBox.classList.remove('show');
             }, 5000);
@@ -710,4 +872,5 @@
         window.addEventListener('beforeunload', stopWebcam);
     </script>
 </body>
+
 </html>

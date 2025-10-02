@@ -46,6 +46,7 @@ namespace LivenessDetection.Controllers
                         faceCount = result.FaceCount,
                         isBlurred = result.IsBlurred,
                         hasEyes = result.HasEyes,
+                        eyesOpen = result.EyesOpen,
                         blurScore = result.BlurScore,
                         imagePath = result.CapturedImagePath
                     });
@@ -60,7 +61,7 @@ namespace LivenessDetection.Controllers
        public class ImageRequest
 {
     public string ImageData { get; set; } = string.Empty;
-    public bool SaveImage { get; set; } = false; // New flag to control saving
+    public bool SaveImage { get; set; } = false;
 }
     }
 }

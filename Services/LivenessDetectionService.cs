@@ -29,12 +29,21 @@ namespace LivenessDetection.Services
             }
         }
 
+        public class BlinkDetectionResult
+{
+    public bool HasEyes { get; set; }
+    public bool EyesOpen { get; set; }
+    public int LeftEyeCount { get; set; }
+    public int RightEyeCount { get; set; }
+}
+
         public class DetectionResult
         {
             public bool IsValid { get; set; }
             public string Message { get; set; } = string.Empty;
             public int FaceCount { get; set; }
             public bool IsBlurred { get; set; }
+            public bool EyesOpen { get; set; }
             public bool HasEyes { get; set; }
             public double BlurScore { get; set; }
             public string? CapturedImagePath { get; set; }
@@ -156,15 +165,16 @@ namespace LivenessDetection.Services
             return result;
         }
 
-        // Step 3: Detect eyes
+        // Step 3: Detect eyes and check blink state
         var faceRoi = new Mat(mat, faces[0]);
-        var eyes = DetectEyes(faceRoi);
-        result.HasEyes = eyes.Length >= 2;
+        var blinkResult = DetectEyesWithBlink(faceRoi);
+        result.HasEyes = blinkResult.HasEyes;
+        result.EyesOpen = blinkResult.EyesOpen;  // ADD THIS
 
         if (!result.HasEyes)
         {
             result.IsValid = false;
-            result.Message = "Liveness check failed. Please ensure your eyes are clearly visible and not covered.";
+            result.Message = "Eyes not detected. Please ensure your eyes are clearly visible.";
             return result;
         }
 
@@ -202,20 +212,42 @@ namespace LivenessDetection.Services
             return faces;
         }
 
-        private Rectangle[] DetectEyes(Mat faceImage)
-        {
-            using var grayFace = new Mat();
-            CvInvoke.CvtColor(faceImage, grayFace, ColorConversion.Bgr2Gray);
+        private BlinkDetectionResult DetectEyesWithBlink(Mat faceImage)
+{
+    using var grayFace = new Mat();
+    CvInvoke.CvtColor(faceImage, grayFace, ColorConversion.Bgr2Gray);
 
-            var eyes = _eyeCascade.DetectMultiScale(
-                grayFace,
-                scaleFactor: 1.01,
-                minNeighbors: 4,
-                minSize: new Size(20, 20)
-            );
+    var eyes = _eyeCascade.DetectMultiScale(
+        grayFace,
+        scaleFactor: 1.01,
+        minNeighbors: 5,
+        minSize: new Size(20, 20)
+    );
 
-            return eyes;
-        }
+    var result = new BlinkDetectionResult
+    {
+        HasEyes = eyes.Length >= 2,
+        EyesOpen = eyes.Length >= 2,
+        LeftEyeCount = 0,
+        RightEyeCount = 0
+    };
+
+    // Separate left and right eyes based on x-coordinate
+    if (eyes.Length >= 2)
+    {
+        var sortedEyes = eyes.OrderBy(e => e.X).ToArray();
+        result.LeftEyeCount = sortedEyes.Take(sortedEyes.Length / 2).Count();
+        result.RightEyeCount = sortedEyes.Skip(sortedEyes.Length / 2).Count();
+    }
+
+    // Eyes closed detection: if less than 2 eyes detected, consider eyes closed
+    if (eyes.Length < 2)
+    {
+        result.EyesOpen = false;
+    }
+
+    return result;
+}
 
         private double CalculateBlurScore(Mat image)
         {
