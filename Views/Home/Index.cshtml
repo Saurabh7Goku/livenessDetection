@@ -1,13 +1,9 @@
-﻿@{
-    ViewData["Title"] = "Liveness Detection - Exam Verification";
-}
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewData["Title"]</title>
+    <title>Liveness Detection - Exam Verification</title>
     <style>
         * {
             margin: 0;
@@ -16,198 +12,353 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f172a;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             padding: 20px;
+            color: #e2e8f0;
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-            max-width: 900px;
-            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        h1 {
-            color: #333;
+        .header {
             text-align: center;
-            margin-bottom: 10px;
-            font-size: 28px;
+            margin-bottom: 40px;
+            padding-top: 20px;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
         }
 
-        .video-container {
+        .header p {
+            color: #94a3b8;
+            font-size: 15px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @@media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .video-section {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #334155;
+        }
+
+        .video-wrapper {
             position: relative;
-            width: 100%;
-            max-width: 640px;
-            margin: 0 auto 30px;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: #000;
+            aspect-ratio: 4/3;
+            margin-bottom: 20px;
         }
 
         #webcam {
             width: 100%;
-            height: auto;
-            display: block;
+            height: 100%;
+            object-fit: cover;
             transform: scaleX(-1);
+            background: #000;
         }
 
-        .overlay {
+        .video-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
             border: 3px solid transparent;
             pointer-events: none;
-            transition: border-color 0.3s;
-        }
-
-        .overlay.detecting {
-            border-color: #fbbf24;
-        }
-
-        .overlay.success {
-            border-color: #10b981;
-        }
-
-        .overlay.error {
-            border-color: #ef4444;
-        }
-
-        .status-panel {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-
-        .status-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .status-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-        }
-
-        .status-icon.pending {
-            background: #e5e7eb;
-            color: #6b7280;
-        }
-
-        .status-icon.checking {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .status-icon.success {
-            background: #d1fae5;
-            color: #059669;
-        }
-
-        .status-icon.error {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .message-box {
-            background: #eff6ff;
-            border-left: 4px solid #3b82f6;
-            padding: 15px;
+            transition: all 0.3s ease;
             border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #1e40af;
         }
 
-        .message-box.success {
-            background: #f0fdf4;
-            border-left-color: #10b981;
-            color: #065f46;
+        .video-overlay.detecting {
+            border-color: #f59e0b;
+            box-shadow: inset 0 0 0 4px rgba(245, 158, 11, 0.1);
         }
 
-        .message-box.error {
-            background: #fef2f2;
-            border-left-color: #ef4444;
-            color: #991b1b;
+        .video-overlay.success {
+            border-color: #10b981;
+            box-shadow: inset 0 0 0 4px rgba(16, 185, 129, 0.1);
         }
 
-        .message-box.warning {
-            background: #fffbeb;
-            border-left-color: #f59e0b;
-            color: #92400e;
+        .video-overlay.error {
+            border-color: #ef4444;
+            box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.1);
+        }
+
+        .camera-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
         }
 
         .btn {
-            width: 100%;
-            padding: 15px;
+            flex: 1;
+            padding: 14px 24px;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
         }
 
         .btn-success {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
         }
 
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #334155;
+        }
+
+        .card-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #0f172a;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            transition: all 0.2s ease;
+        }
+
+        .status-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .status-icon.pending {
+            background: #334155;
+            color: #64748b;
+        }
+
+        .status-icon.checking {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .status-icon.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .status-icon.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .status-content {
+            flex: 1;
+        }
+
+        .status-label {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .status-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .instructions-list {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .instructions-list li {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .instructions-list li::before {
+            content: "→";
+            color: #6366f1;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            display: none;
+            align-items: start;
+            gap: 12px;
+            border: 1px solid;
+            animation: slideIn 0.3s ease;
+        }
+
+        @@keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: flex;
+        }
+
+        .alert.info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
+        .alert.success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+        }
+
+        .alert-icon {
+            font-size: 18px;
+            flex-shrink: 0;
         }
 
         .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-top-color: white;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
+            animation: spin 0.6s linear infinite;
         }
 
         @@keyframes spin {
@@ -215,94 +366,106 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
-        .instructions {
-            background: #fef3c7;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .instructions h3 {
-            color: #92400e;
-            margin-bottom: 12px;
-            font-size: 16px;
-        }
-
-        .instructions ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .instructions li {
-            color: #78350f;
-            margin-bottom: 8px;
-            padding-left: 24px;
-            position: relative;
-            font-size: 14px;
-        }
-
-        .instructions li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #d97706;
-            font-weight: bold;
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📸 Liveness Detection System</h1>
-        <p class="subtitle">Exam Form Verification - Identity Check</p>
-
-        <div class="instructions">
-            <h3>Instructions for Verification:</h3>
-            <ul>
-                <li>Position your face clearly in front of the camera</li>
-                <li>Ensure good lighting - avoid shadows on your face</li>
-                <li>Remove any face coverings (masks, sunglasses, etc.)</li>
-                <li>Only one person should be in the frame</li>
-                <li>Keep the camera steady and avoid motion blur</li>
-            </ul>
+        <div class="header">
+            <h1>Identity Verification</h1>
+            <p>Exam Form - Liveness Detection System</p>
         </div>
 
-        <div class="video-container">
-            <video id="webcam" autoplay playsinline></video>
-            <div id="overlay" class="overlay"></div>
+        <div id="alertBox" class="alert"></div>
+
+        <div class="main-grid">
+            <div class="video-section">
+                <div class="video-wrapper">
+                    <video id="webcam" autoplay playsinline></video>
+                    <div id="overlay" class="video-overlay"></div>
+                    <div class="camera-badge hidden" id="cameraBadge">
+                        <div class="status-dot"></div>
+                        <span>Live</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">
+                        <span>▶</span>
+                        Start Camera
+                    </button>
+                    <button id="captureBtn" class="btn btn-success hidden" disabled>
+                        <div class="spinner hidden" id="spinner"></div>
+                        <span id="captureText">Capture & Verify</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-header">
+                        <span>📋</span>
+                        Verification Status
+                    </div>
+                    <div class="status-grid">
+                        <div class="status-row">
+                            <div id="faceIcon" class="status-icon pending">?</div>
+                            <div class="status-content">
+                                <div class="status-label">Face Detection</div>
+                                <div id="faceText" class="status-value">Waiting...</div>
+                            </div>
+                        </div>
+                        <div class="status-row">
+                            <div id="countIcon" class="status-icon pending">?</div>
+                            <div class="status-content">
+                                <div class="status-label">Person Count</div>
+                                <div id="countText" class="status-value">Checking...</div>
+                            </div>
+                        </div>
+                        <div class="status-row">
+                            <div id="blurIcon" class="status-icon pending">?</div>
+                            <div class="status-content">
+                                <div class="status-label">Image Clarity</div>
+                                <div id="blurText" class="status-value">Analyzing...</div>
+                            </div>
+                        </div>
+                        <div class="status-row">
+                            <div id="livenessIcon" class="status-icon pending">?</div>
+                            <div class="status-content">
+                                <div class="status-label">Liveness Check</div>
+                                <div id="livenessText" class="status-value">Pending...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>💡</span>
+                        Instructions
+                    </div>
+                    <ul class="instructions-list">
+                        <li>Position your face clearly in frame</li>
+                        <li>Ensure adequate lighting</li>
+                        <li>Remove masks and sunglasses</li>
+                        <li>Only one person in frame</li>
+                        <li>Keep camera steady</li>
+                    </ul>
+                </div>
+            </div>
         </div>
-
-        <div class="status-panel">
-            <div class="status-item">
-                <div id="faceStatus" class="status-icon pending">?</div>
-                <span id="faceText">Face Detection: Waiting...</span>
-            </div>
-            <div class="status-item">
-                <div id="countStatus" class="status-icon pending">?</div>
-                <span id="countText">Person Count: Checking...</span>
-            </div>
-            <div class="status-item">
-                <div id="blurStatus" class="status-icon pending">?</div>
-                <span id="blurText">Blur Detection: Analyzing...</span>
-            </div>
-            <div class="status-item">
-                <div id="livenessStatus" class="status-icon pending">?</div>
-                <span id="livenessText">Liveness Check: Pending...</span>
-            </div>
-        </div>
-
-        <div id="messageBox" class="message-box hidden"></div>
-
-        <button id="startBtn" class="btn btn-primary">
-            Start Verification
-        </button>
-
-        <button id="captureBtn" class="btn btn-success hidden" disabled>
-            <span class="spinner hidden" id="spinner"></span>
-            Capture & Verify
-        </button>
     </div>
 
     <script>
@@ -314,14 +477,16 @@
         const startBtn = document.getElementById('startBtn');
         const captureBtn = document.getElementById('captureBtn');
         const overlay = document.getElementById('overlay');
-        const messageBox = document.getElementById('messageBox');
+        const alertBox = document.getElementById('alertBox');
         const spinner = document.getElementById('spinner');
+        const cameraBadge = document.getElementById('cameraBadge');
+        const captureText = document.getElementById('captureText');
 
         const statusElements = {
-            face: { icon: document.getElementById('faceStatus'), text: document.getElementById('faceText') },
-            count: { icon: document.getElementById('countStatus'), text: document.getElementById('countText') },
-            blur: { icon: document.getElementById('blurStatus'), text: document.getElementById('blurText') },
-            liveness: { icon: document.getElementById('livenessStatus'), text: document.getElementById('livenessText') }
+            face: { icon: document.getElementById('faceIcon'), text: document.getElementById('faceText') },
+            count: { icon: document.getElementById('countIcon'), text: document.getElementById('countText') },
+            blur: { icon: document.getElementById('blurIcon'), text: document.getElementById('blurText') },
+            liveness: { icon: document.getElementById('livenessIcon'), text: document.getElementById('livenessText') }
         };
 
         startBtn.addEventListener('click', startWebcam);
@@ -329,31 +494,57 @@
 
         async function startWebcam() {
             try {
+                // First check if mediaDevices is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Camera API not supported in this browser');
+                }
+
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
                         facingMode: 'user'
-                    } 
+                    },
+                    audio: false
                 });
                 
                 webcam.srcObject = stream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    webcam.onloadedmetadata = () => {
+                        webcam.play();
+                        resolve();
+                    };
+                });
+                
                 startBtn.classList.add('hidden');
                 captureBtn.classList.remove('hidden');
                 captureBtn.disabled = false;
+                cameraBadge.classList.remove('hidden');
                 
-                showMessage('Camera started successfully! Position your face and click Capture & Verify.', 'success');
+                showAlert('Camera started successfully! Position your face and click Capture & Verify.', 'success');
                 
-                // Start continuous verification
                 startContinuousVerification();
             } catch (error) {
-                showMessage('Unable to access camera. Please grant camera permissions.', 'error');
+                let errorMessage = 'Unable to access camera. ';
+                
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage += 'Please grant camera permissions and refresh the page.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMessage += 'No camera device found.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMessage += 'Camera is already in use by another application.';
+                } else {
+                    errorMessage += error.message || 'Unknown error occurred.';
+                }
+                
+                showAlert(errorMessage, 'error');
                 console.error('Camera error:', error);
             }
         }
 
         function startContinuousVerification() {
-            // Check every 2 seconds for real-time feedback
             verificationInterval = setInterval(() => {
                 if (!isProcessing) {
                     performQuickCheck();
@@ -362,6 +553,12 @@
         }
 
         async function performQuickCheck() {
+            // Make sure video is playing and has valid dimensions
+            if (webcam.readyState !== webcam.HAVE_ENOUGH_DATA || 
+                webcam.videoWidth === 0 || webcam.videoHeight === 0) {
+                return;
+            }
+
             const canvas = document.createElement('canvas');
             canvas.width = webcam.videoWidth;
             canvas.height = webcam.videoHeight;
@@ -374,7 +571,7 @@
                 const response = await fetch('/Home/ProcessFrame', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageData })
+                    body: JSON.stringify({ imageData, saveImage: false })
                 });
                 
                 const result = await response.json();
@@ -390,11 +587,10 @@
             isProcessing = true;
             captureBtn.disabled = true;
             spinner.classList.remove('hidden');
-            overlay.className = 'overlay detecting';
+            overlay.className = 'video-overlay detecting';
             
-            showMessage('Processing image... Please wait.', 'warning');
+            showAlert('Processing image... Please wait.', 'warning');
             
-            // Capture image from video
             const canvas = document.createElement('canvas');
             canvas.width = webcam.videoWidth;
             canvas.height = webcam.videoHeight;
@@ -407,32 +603,31 @@
                 const response = await fetch('/Home/ProcessFrame', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageData })
+                    body: JSON.stringify({ imageData, saveImage: true })
                 });
                 
                 const result = await response.json();
                 updateStatusUI(result, true);
                 
                 if (result.success) {
-                    overlay.className = 'overlay success';
-                    showMessage(`${result.message} Image saved successfully!`, 'success');
+                    overlay.className = 'video-overlay success';
+                    showAlert(`${result.message} Image saved successfully!`, 'success');
                     
-                    // Stop camera after successful capture
                     setTimeout(() => {
                         stopWebcam();
-                        captureBtn.textContent = 'Verification Complete ✓';
+                        captureText.textContent = 'Verification Complete ✓';
                         captureBtn.disabled = true;
                     }, 2000);
                 } else {
-                    overlay.className = 'overlay error';
-                    showMessage(result.message, 'error');
+                    overlay.className = 'video-overlay error';
+                    showAlert(result.message, 'error');
                     setTimeout(() => {
-                        overlay.className = 'overlay';
+                        overlay.className = 'video-overlay';
                     }, 3000);
                 }
             } catch (error) {
-                overlay.className = 'overlay error';
-                showMessage('Error processing image. Please try again.', 'error');
+                overlay.className = 'video-overlay error';
+                showAlert('Error processing image. Please try again.', 'error');
                 console.error('Processing error:', error);
             } finally {
                 isProcessing = false;
@@ -442,40 +637,36 @@
         }
 
         function updateStatusUI(result, isFinalCheck) {
-            // Face detection
             if (result.faceCount === 1) {
-                updateStatus('face', 'success', '✓', 'Face Detected: 1 person');
+                updateStatus('face', 'success', '✓', '1 person');
             } else if (result.faceCount === 0) {
-                updateStatus('face', 'error', '✗', 'Face Detection: No face found');
+                updateStatus('face', 'error', '✗', 'No face found');
             } else {
-                updateStatus('face', 'error', '✗', `Face Detection: ${result.faceCount} faces found`);
+                updateStatus('face', 'error', '✗', `${result.faceCount} faces found`);
             }
             
-            // Person count
             if (result.faceCount === 1) {
-                updateStatus('count', 'success', '✓', 'Person Count: Valid (1 person)');
+                updateStatus('count', 'success', '✓', 'Valid (1 person)');
             } else if (result.faceCount > 1) {
-                updateStatus('count', 'error', '✗', `Person Count: Invalid (${result.faceCount} people)`);
+                updateStatus('count', 'error', '✗', `Invalid (${result.faceCount} people)`);
             } else {
-                updateStatus('count', 'checking', '...', 'Person Count: Checking...');
+                updateStatus('count', 'checking', '⋯', 'Checking...');
             }
             
-            // Blur detection
             if (!result.isBlurred && result.faceCount > 0) {
-                updateStatus('blur', 'success', '✓', `Blur Check: Clear (score: ${result.blurScore.toFixed(2)})`);
+                updateStatus('blur', 'success', '✓', `Clear (${result.blurScore.toFixed(2)})`);
             } else if (result.isBlurred) {
-                updateStatus('blur', 'error', '✗', `Blur Check: Too blurry (score: ${result.blurScore.toFixed(2)})`);
+                updateStatus('blur', 'error', '✗', `Too blurry (${result.blurScore.toFixed(2)})`);
             } else {
-                updateStatus('blur', 'checking', '...', 'Blur Check: Analyzing...');
+                updateStatus('blur', 'checking', '⋯', 'Analyzing...');
             }
             
-            // Liveness check
             if (result.hasEyes && result.faceCount === 1) {
-                updateStatus('liveness', 'success', '✓', 'Liveness: Real person detected');
+                updateStatus('liveness', 'success', '✓', 'Real person detected');
             } else if (result.faceCount === 1 && !result.hasEyes) {
-                updateStatus('liveness', 'error', '✗', 'Liveness: Eyes not clearly visible');
+                updateStatus('liveness', 'error', '✗', 'Eyes not visible');
             } else {
-                updateStatus('liveness', 'checking', '...', 'Liveness: Pending...');
+                updateStatus('liveness', 'checking', '⋯', 'Pending...');
             }
         }
 
@@ -486,10 +677,23 @@
             el.text.textContent = text;
         }
 
-        function showMessage(message, type) {
-            messageBox.textContent = message;
-            messageBox.className = `message-box ${type}`;
-            messageBox.classList.remove('hidden');
+        function showAlert(message, type) {
+            const icons = {
+                info: 'ℹ️',
+                success: '✓',
+                error: '✗',
+                warning: '⚠'
+            };
+            
+            alertBox.innerHTML = `
+                <span class="alert-icon">${icons[type]}</span>
+                <span>${message}</span>
+            `;
+            alertBox.className = `alert ${type} show`;
+            
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 5000);
         }
 
         function stopWebcam() {
@@ -500,6 +704,7 @@
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
             }
+            cameraBadge.classList.add('hidden');
         }
 
         window.addEventListener('beforeunload', stopWebcam);

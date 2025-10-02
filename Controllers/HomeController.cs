@@ -37,18 +37,18 @@ namespace LivenessDetection.Controllers
                     : request.ImageData;
 
                 var imageBytes = Convert.FromBase64String(base64Data);
-                var result = _livenessService.ProcessImage(imageBytes);
+                var result = await Task.Run(() => _livenessService.ProcessImage(imageBytes, request.SaveImage));
 
                 return Ok(new
-                {
-                    success = result.IsValid,
-                    message = result.Message,
-                    faceCount = result.FaceCount,
-                    isBlurred = result.IsBlurred,
-                    hasEyes = result.HasEyes,
-                    blurScore = result.BlurScore,
-                    imagePath = result.CapturedImagePath
-                });
+                    {
+                        success = result.IsValid,
+                        message = result.Message,
+                        faceCount = result.FaceCount,
+                        isBlurred = result.IsBlurred,
+                        hasEyes = result.HasEyes,
+                        blurScore = result.BlurScore,
+                        imagePath = result.CapturedImagePath
+                    });
             }
             catch (Exception ex)
             {
@@ -57,9 +57,10 @@ namespace LivenessDetection.Controllers
             }
         }
 
-        public class ImageRequest
-        {
-            public string ImageData { get; set; } = string.Empty;
-        }
+       public class ImageRequest
+{
+    public string ImageData { get; set; } = string.Empty;
+    public bool SaveImage { get; set; } = false; // New flag to control saving
+}
     }
 }
